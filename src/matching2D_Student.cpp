@@ -30,7 +30,18 @@ void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::Key
     else if (selectorType.compare("SEL_KNN") == 0)
     { // k nearest neighbors (k=2)
 
-        // ...
+        vector<vector<cv::DMatch>> knn_matches;
+        matcher->knnMatch(descSource, descRef, knn_matches, 2);
+
+        double minDescDistRatio = 0.8;
+        for (auto & knn_match : knn_matches)
+        {
+            if (knn_match[0].distance < minDescDistRatio * knn_match[1].distance)
+            {
+                matches.push_back(knn_match[0]);
+            }
+        }
+
     }
 }
 
@@ -39,19 +50,32 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
 {
     // select appropriate descriptor
     cv::Ptr<cv::DescriptorExtractor> extractor;
-    if (descriptorType.compare("BRISK") == 0)
-    {
+    switch (descriptorType) {
+        case "BRISK":
 
-        int threshold = 30;        // FAST/AGAST detection threshold score.
-        int octaves = 3;           // detection octaves (use 0 to do single scale)
-        float patternScale = 1.0f; // apply this scale to the pattern used for sampling the neighbourhood of a keypoint.
+            int threshold = 30;        // FAST/AGAST detection threshold score.
+            int octaves = 3;           // detection octaves (use 0 to do single scale)
+            float patternScale = 1.0f; // apply this scale to the pattern used for sampling the neighbourhood of a keypoint.
 
-        extractor = cv::BRISK::create(threshold, octaves, patternScale);
-    }
-    else
-    {
-
-        //...
+            extractor = cv::BRISK::create(threshold, octaves, patternScale);
+            break;
+        case "BRIEF":
+            extractor = cv::xfeatures2d::BriefDescriptorExtractor::create();
+            break;
+        case "ORB":
+            extractor = cv::ORB::create();
+            break;
+        case "FREAK":
+            extractor = cv::xfeatures2d::FREAK::create();
+            break;
+        case "AKAZE":
+            extractor = cv::AKAZE::create();
+            break;
+        case "SIFT":
+            extractor = cv::xfeatures2d::SIFT::create();
+            break;
+        default:
+            std::cerr << "Invalid detector type" << std::endl;
     }
 
     // perform feature description
